@@ -1,0 +1,76 @@
+#!/bin/bash
+ulimit -n 9999
+
+publish=0
+if [[ "$@" == "publish" ]];then
+publish=1
+fi
+pkill Tachyon
+pkill Arbitrage
+kill -9 $(pgrep Tachyon)
+sleep 2
+#/usr/bin/TAP/11087/./run_tap.sh
+pkill tap
+sleep 2
+/usr/bin/TAP/11087/./run_tap.sh
+echo "----TACHYON Log Downloader LAUNCHER-----"
+cp /home/shareindia/Algowire/Tachyon/Live/Configuration/{AllConfig.csv,contractKey.txt,contract.txt,security.txt} /home/shareindia/Algowire/Tachyon/TAP_Live/Configuration/
+#sed -i 's/RMSIP/#RMSIP/g' /home/shareindia/Algowire/Tachyon/TAP_Live/Configuration/AllConfig.csv
+#sed -i 's/RMSPort/#RMSPort/g' /home/shareindia/Algowire/Tachyon/TAP_Live/Configuration/AllConfig.csv
+
+cd /home/shareindia/Algowire/Tachyon/TAP_Live/
+rm -rf Logs
+mkdir Logs
+date
+#version="./TachyonDownloaderTrimmedCr.I-2500.21112017"
+#version="./TachyonDownloaderTrimmedCr"
+#version="./TachyonServer.Downloader.9.8.2.14122017"
+#version="./TachyonServer.Downloader.9.8.4.04052018"
+#version="./TachyonServer.Downloader.9.8.4.08052018"
+version="./TachyonServer.EXN.GR.B.Downloader.8.3.4.06062018"
+
+if [[ $publish == 1 ]];then
+sleep 2
+$version --fo --interactivemode 1 --dolog --downloadmsgs
+else
+$version --fo --interactivemode 1 --dolog --downloadmsgs --nopublisher
+fi
+
+tlive='/home/shareindia/Algowire/Tachyon/TAP_Live'
+ip=$(hostname | cut -c11-)
+time=$(date +%k%M)
+time1=$(date +%k:%M)
+
+cd Logs
+if [ -f FO_IntRaw_0 ]; then
+        echo "******************Logs Successfully Generated****************"
+        cd ..
+        if [[ "$time" -lt 1530 ]]; then
+         mv Logs $tlive/Backup$(date +%d%m%Y)_$time
+         echo "******************File Successfully Generated****************"
+         ls $tlive/Backup$(date +%d%m%Y)_$time1
+        elif [[ "$time" -ge 1530 ]]; then
+         mv Logs $tlive/Backup$(date +%d%m%Y)
+         zip -r Backup$(date +%d%m%Y).zip Backup$(date +%d%m%Y)
+      echo  -------------------------------------------------
+      echo     [Log Files Inside todays Backup Folder ]
+          ls -lh /home/shareindia/Algowire/Tachyon/TAP_Live/Backup$(date +%d%m%Y)
+       echo -------------------------------------------------
+	 wait
+	 ip=$(hostname | cut -c11-)
+         mount -t cifs //192.168.51.50/share /home/mounted -o username=admin,password=startingmywork
+         echo "backup transfering.."
+         cp Backup$(date +%d%m%Y).zip /home/mounted/Tot_Logs/$ip/
+         echo "backup completed...."
+         sleep 1
+         umount /home/mounted && exit
+         echo "******************File Successfully Generated****************"
+         ls $tlive/Backup$(date +%d%m%Y)
+        fi
+else
+        echo "********Error!! Files not Created in Logs********"
+fi
+
+sleep 1
+pkill tap
+
