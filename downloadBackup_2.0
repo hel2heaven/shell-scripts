@@ -1,0 +1,178 @@
+#!/bin/bash
+flag=0
+publish=0
+nolog=0
+#check=0
+for arg in $@
+do
+if [[ $arg == "help" || $arg == "man" || $arg == "HELP" || $arg == "MAN" ]];then
+
+                echo
+                echo "HELP                      Prints usage detail and argument options"
+		echo "./downloadBackup_2.0 --[option]"
+                #echo "--fo                      for FNO segment "
+                #echo "--cm                      for CM segment"
+                #echo "--cd                      for CD segment"
+                #echo "--interactivemode         enabling interactivemode"
+                #echo "--dolog                   for Backup directory"
+                #echo "--downloadmsgs            download the messages "
+                echo "--publish                 publish logs in RMS"
+                echo "--nopublish               no logs publish in RMS"
+                echo "                          Download Logs for each segment then get stored into Backup$date_UserId directory"
+#		check=$((check+1))		
+                exit
+	fi
+
+if [[ $arg == "publish" || $arg == "publish" ]];then
+publish=1
+flag=1
+#check=$((check+1))
+fi
+if [[ $arg == "nolog" || $arg == "nolog" ]];then
+nolog=1
+flag=1
+#check=$((check+1))
+fi
+if [ $flag == 0  ];then
+        echo "Invalid arguments for more use 'HELP' or 'MAN'"
+	check=0
+	exit
+fi
+
+done
+#if [[ "$1" == "publish" || "$2" == "publish" ]];then
+#publish=1
+#fi
+#if [[ "$1" == "nolog" || "$2" == "nolog" ]];then
+#nolog=1
+#fi
+
+/root/./killTachyon
+
+###run connector
+time=$(date +%H%M)
+if [[ "$time" -le 1530 ]];then
+  echo "mkt hours"
+else
+  if [[ "$publish" == "0" ]];then
+    sleep 10s
+    echo "Running Connector"
+    cd /home/shareindia/Algowire/Tachyon/Live
+    'rm' connectorlog.txt
+    ./TachyonServer.connector >> connectorlog.txt &
+  fi
+fi
+###run connector
+
+###remove iptable entry
+iptables -F INPUT
+###remove iptable entry
+
+cd /home/shareindia/Algowire/Tachyon/TAP_Live
+profile_tmp="$(grep ^tach_profile /root/runTachyon)"
+profile=${profile_tmp:14:11}
+if [[ "$profile" == "ioc_ver10-1" || "$profile" == "ioc_ver10-2" ]];then
+#  ./switch_tap-tbt forced_change_tap disable
+   cd /home/chandan
+   ./changetov10_2.0 nonv10
+   cd -
+fi
+
+###run downloader
+cp ../Live/Configuration/{AllConfig.csv,contractKey.txt,contract.txt} Configuration/
+'rm' -r Logs
+mkdir Logs
+#version="./TachyonServer.Downloader.9.8.22092017"
+##version="./TachyonServer.Downloader.9.8.1.11112017"
+###version="./TachyonServer.Downloader.9.8.2.14122017"
+#version="./TachyonServer.Downloader.9.8.4.08052018"
+#version="./TachyonServer.EXN.GR.B.Downloader.8.3.4.06062018"
+###version="./TachyonServer.downloader_stp_02082018"
+version="./TachyonServer.EXN.GR.B.Downloader.8.3.6.11012019"
+
+echo "Running Downloader " $publish and $nolog
+if [[ "$publish" == "1" ]];then
+$version --fo --interactivemode 1 --downloadmsgs --dolog
+else
+$version --fo --interactivemode 1 --downloadmsgs --dolog --nopublisher
+fi
+pkill tap
+###run downloader
+
+###manage log files
+if [[ "$nolog" == "0" ]];then
+echo "moving logs"
+tlive='/home/shareindia/Algowire/Tachyon/TAP_Live'
+#tap_ip=$(cat $tlive/Configuration/AllConfig.csv | grep ^InteractiveIP | cut -d '=' -f2 | cut -d '.' -f3-4)
+user_id=$(cat $tlive/Configuration/AllConfig.csv | grep ^TraderID | cut -d '=' -f2)
+time=$(date +%H%M)
+if [[ "$time" -le 1530 ]];then
+  mv Logs $tlive/Backup$(date +%d%m%Y_%H%M)_$user_id
+else
+  if [[ "$publish" == "0" ]];then
+    if [ -d Backup$(date +%d%m%Y)_$user_id ];then
+      rm -rf Backup$(date +%d%m%Y)_$user_id
+    fi
+    mv Logs $tlive/Backup$(date +%d%m%Y)_$user_id
+    ip=$(hostname | cut -c11-)
+    sshpass -p group@10798 ssh 192.168.100.30 [ -d /mktdata1/DailyLogs/$user_id ] > /dev/null
+    if [[ $? != 0 ]];then
+     sshpass -p group@10798 ssh 192.168.100.30 mkdir -p /mktdata1/DailyLogs/$user_id
+    fi
+    sshpass -p group@10798 scp -r $tlive/Backup$(date +%d%m%Y)_$user_id root@192.168.100.30:/mktdata1/DailyLogs/$user_id/
+    sleep 1
+    sshpass -p group@10798 ssh 192.168.100.33 [ -d /store/DailyLogs/$user_id ] > /dev/null
+    if [[ $? != 0 ]];then
+     sshpass -p group@10798 ssh 192.168.100.33 mkdir -p /store/DailyLogs/$user_id
+    fi
+    sshpass -p group@10798 scp -r $tlive/Backup$(date +%d%m%Y)_$user_id root@192.168.100.33:/store/DailyLogs/$user_id/
+  fi
+fi
+fi
+###manage log files
+
+###make entry in "/root/tachyonLog"
+if [[ "$nolog" == "0" ]];then
+if [[ "$time" -ge 1530 ]];then
+data="$(grep "ServerIP" Configuration/AllConfig.csv)"
+serverIp=$(echo "${data##*.}")
+#serverIp=62
+FILE="sh"$serverIp".txt"
+
+
+counter=0
+ord=0
+spdord=0
+trd=0
+while read CMD; do
+    counter=$((counter+1))
+    #echo "$CMD"
+    if [[ "$counter" == "5" ]];then
+    ord=$CMD
+    fi
+    if [[ "$counter" == "6" ]];then
+    spdord=$CMD
+    fi
+    if [[ "$counter" == "7" ]];then
+    trd=$CMD
+    fi
+done < "$FILE"
+
+version=$(cat /root/runTachyon | grep '^version')
+verlen=${#version}
+hostip=$(cat "$ALLCONFIG" | grep HostIP)
+echo  ${version:9:verlen-9} $hostip $(date) "|fo trade:" $trd "|fo order:" $ord "|fo spd order:" $spdord  >> /root/tachyonLog
+fi
+fi
+###make entry in "/root/tachyonLog"
+
+
+if [[ "$profile" == "ioc_ver10-1" || "$profile" == "ioc_ver10-2" ]];then
+  #./switch_tap-tbt forced_change_tbt enable
+   cd /home/chandan
+   ./changetov10_2.0 S
+   cd -
+  
+fi
+
+

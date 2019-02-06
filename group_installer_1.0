@@ -1,0 +1,88 @@
+#!/bin/bash
+
+box=0
+conrev=0
+ftof=0
+downloader=0
+
+if [[ "$2" == 'box' ]] || [[ "$2" == 'bid' ]] || [[ "$2" == 'ctof' ]];then
+box=1
+conrev=0
+ftof=0
+downloader=0
+fi
+
+if [[ "$2" == 'conrev' ]];then
+conrev=1
+box=0
+ftof=0
+downloader=0
+fi
+
+if [[ "$2" == 'ftof' ]];then
+ftof=1
+conrev=0
+box=0
+downloader=0
+fi
+
+if [[ "$2" == 'downloader' ]];then
+downloader=1
+ftof=0
+conrev=0
+box=0
+fi
+
+allips=$(cat serverscenter | head -2 | tail -1)
+
+#echo "$@"
+#echo $2
+#echo "${@:3}"
+
+if [[ $box == 1 ]];then
+	for ip in "${@:3}"
+	do
+	 #echo $ip
+	 sshpass -p group@10798 ssh root@192.168.100.$ip /home/build/tach_installer_2.5 $1 leave_package
+	 if [[ $? == 0 ]];then
+	  echo '' && echo "*************** compiled in "$ip" ***************"
+	  echo ' '
+	 fi
+	done
+fi
+
+if [[ $conrev == 1 ]];then
+        for ip in "${@:3}"
+        do
+         sshpass -p group@10798 ssh root@192.168.100.$ip /home/build/tach_installer_2.5 $1 leave_package prof_conrev
+         if [[ $? == 0 ]];then
+          echo '' && echo "*************** compiled in "$ip" ***************"
+	  echo ' '
+         fi
+        done
+fi
+
+if [[ $ftof == 1 ]];then
+        for ip in "${@:3}"
+        do
+         sshpass -p group@10798 ssh root@192.168.100.$ip /home/build/tach_installer_2.5 $1 leave_package prof_ftof
+         if [[ $? == 0 ]];then
+          echo '' && echo "*************** compiled in "$ip" ***************"
+	  echo ' '
+         fi
+        done
+fi
+
+if [[ $downloader == 1 ]];then
+        for ip in "${@:3}"
+	#for ip in $allips
+        do
+         sshpass -p group@10798 ssh root@192.168.100.$ip /home/build/tach_installer_2.5 $1 leave_package downloader
+         if [[ $? == 0 ]];then
+          echo '' && echo "*************** compiled in "$ip" ***************"
+          echo ' '
+         fi
+        done
+fi
+ 
+

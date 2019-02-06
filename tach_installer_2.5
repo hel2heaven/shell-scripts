@@ -1,0 +1,370 @@
+#!/bin/bash
+
+cd /home/build
+
+pkg=0
+leavepackage=0
+extractonly=0
+profconrev=0
+profftof=0
+profftofliner=0
+downloader=0
+profall=0
+profcount=0
+ordmap=1
+ostcp=0
+nocopy=0
+excesstick=0
+excessnbest=0
+excesseffqty=0
+excessdistributed=0
+debugcompile=0
+ver10secondary=0
+pob=0
+for var in "$@"
+do
+        if [[ "$var" == "help" || "$var" == "man" || "$var" == "HELP" || "$var" == "MAN" ]];then
+                echo "help               prints usage detail and argument options"
+                echo "extract_only       only fetches and extracts the given package"
+                echo "prof_conrev        compile package for conrev profile"
+                echo "prof_ftof          compile package for ftof profile"
+                echo "prof_ftof_liner    compile package for ftof+liner profile"
+                echo "prof_all           compile package for all profile"				
+				echo "excess_tick        compile package with EXCESS_TICK"
+				echo "excess_nbest       compile package with EXCESS_NBEST"
+				echo "excess_effqty      compile package with EXCESS_EFF_QTY"
+				echo "excess_distributed compile package with EXCESS_DISTRIBUTED"
+                echo "downloader         compile package as interactive downloader"
+                echo "no-ordmap          compile package without tbt ordmap"
+		echo "ostcp		 compile package with ostcp"
+                echo "nocopy             dont copy package from remote location package is expected to be in local path"
+                echo "debugcompile       compile debug version from this package Makefile_D is expected to be in package"
+                echo "leave_package      not removes package after installation"
+                echo "ver10_secondary    Install ver10 secondary configuration"
+                echo "pob    			 Ver10 pob configuration"
+                echo "NOTE: one parameter as zip package is must to run the script, if no prof_* argument is given the default package will get installed"
+                exit
+        fi
+        varlen=${#var}
+        matched=0
+        if [[ ${var:varlen-4:4} == ".zip" ]];then
+                pkg=$var
+                matched=1
+        fi
+        if [[ "$var" == "leave_package" ]];then
+                leavepackage=1
+                matched=1
+        fi
+        if [[ "$var" == "extract_only" ]];then
+                extractonly=1
+                matched=1
+        fi
+        if [[ "$var" == "prof_conrev" ]];then
+                profconrev=1
+                (( profcount ++ ))
+                matched=1
+        fi
+        if [[ "$var" == "prof_ftof" ]];then
+                profftof=1
+                (( profcount ++ ))
+                matched=1
+        fi
+        if [[ "$var" == "prof_ftof_liner" ]];then
+                profftofliner=1
+                (( profcount ++ ))
+                matched=1
+        fi
+        if [[ "$var" == "prof_all" ]];then
+                profall=1
+                (( profcount ++ ))
+                matched=1
+        fi
+		if [[ "$var" == "excess_tick" ]];then
+                excesstick=1
+                matched=1
+        fi
+		if [[ "$var" == "excess_nbest" ]];then
+                excessnbest=1
+                matched=1
+        fi
+		if [[ "$var" == "excess_effqty" ]];then
+                excesseffqty=1
+                matched=1
+        fi
+		if [[ "$var" == "excess_distributed" ]];then
+                excessdistributed=1
+                matched=1
+        fi
+        if [[ "$var" == "downloader" ]];then
+                downloader=1
+                matched=1
+        fi
+
+        if [[ "$var" == "no-ordmap" ]];then
+                ordmap=0
+                matched=1
+        fi
+
+        if [[ "$var" == "ostcp" ]];then
+                ostcp=1
+                matched=1
+        fi
+
+        if [[ "$var" == "nocopy" ]];then
+                nocopy=1
+                matched=1
+        fi
+        if [[ "$var" == "debugcompile" ]];then
+                debugcompile=1
+                matched=1
+        fi
+		if [[ "$var" == "ver10_secondary" ]];then
+                ver10secondary=1
+                matched=1
+        fi
+		if [[ "$var" == "pob" ]];then
+                pob=1
+                matched=1
+        fi
+        if [[ $profcount > 1 ]];then
+                echo "only one profile allowed ! "
+                exit
+        fi
+        if [[ $matched == "0" ]];then
+                echo invalid argument $var
+                echo "check help or man"
+                exit
+        fi
+done
+
+
+if [[ $pkg == "0" ]];then
+        echo "Please provide one parameter as zip package to install"
+        exit
+fi
+
+echo installing $pkg
+
+hash sshpass &> /dev/null
+if [ $? -eq 1 ]; then
+        echo >&2 "sshpass not found."
+        rpm -ivh /home/tools/sshpass-1.05-1.el6.x86_64.rpm
+fi
+
+if [[  $downloader == 1 ]];then
+ 'rm' -r downloader
+ mkdir downloader
+ cd downloader
+ if [[ $nocopy == "0" ]];then
+        sshpass -p group@10798 scp root@192.168.100.6:/home/build/$pkg /home/build/downloader/
+ else
+        cp /home/build/$pkg /home/build/downloader
+ fi
+else
+ 'rm' -r tachtest
+ mkdir tachtest
+ cd tachtest
+ if [[ $nocopy == "0" ]];then
+        sshpass -p group@10798 scp root@192.168.100.6:/home/build/$pkg /home/build/tachtest/
+ else
+        cp /home/build/$pkg /home/build/tachtest
+ fi
+fi
+
+###file path and extension check
+file=$pkg
+fileok=0
+if [ -f "$file" ]
+then
+        len=${#file}
+        if [[ "${file:len-4:4}" == ".zip" ]];then
+                fileok=1
+        else
+                echo "Please provide a valid zip package file to install"
+        fi
+else
+        echo "$file not found."
+fi
+
+if [[ $fileok == 0 ]];then
+        exit
+fi
+
+unzip $pkg
+cd TachyonServer.Pkg*
+if [[ $extractonly == "1" ]];then
+        echo package extracted
+        exit
+fi
+
+versionname="versionname"
+if [[ $downloader == "1" ]];then
+        find="\/\/#define INTERACTIVE_DOWNLOADER"
+        replace="#define INTERACTIVE_DOWNLOADER"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        versionname="downloader"
+else
+
+if [[ $ver10secondary == "1" ]];then
+        find="#define USE_DMA"
+        replace="\/\/#define USE_DMA"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"        
+fi
+if [[ $pob == "1" ]];then
+        find="\/\/#define TACH_POB"
+        replace="#define TACH_POB"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+		
+		find="\/\/#define PATTERN_POB"
+        replace="#define PATTERN_POB"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+fi
+
+if [[ $profall == "1" || $profconrev == "1" || $profftof == "1" || $profftofliner == "1" ]];then
+        find="#define PROF_ALL"
+        replace="\/\/#define PROF_ALL"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        find="#define PROF_CR"
+        replace="\/\/#define PROF_CR"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        find="#define PROF_F2F"
+        replace="\/\/#define PROF_F2F"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        find="#define ST_LINER"
+        replace="\/\/#define ST_LINER"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+
+        if [[ $profall == "1" ]];then
+                find="\/\/#define PROF_ALL"
+                replace="#define PROF_ALL"
+                sed -i s/^"$find"/"$replace"/g "include/version.h"
+                versionname="all_version"
+        fi
+        if [[ $profconrev == "1" ]];then
+                find="\/\/#define PROF_CR"
+                replace="#define PROF_CR"
+                sed -i s/^"$find"/"$replace"/g "include/version.h"
+                versionname="cnr_version"
+        fi
+        if [[ $profftof == "1" ]];then
+                find="\/\/#define PROF_F2F"
+                replace="#define PROF_F2F"
+                sed -i s/^"$find"/"$replace"/g "include/version.h"
+                versionname="f2f_version"
+        fi
+        if [[ $profftofliner == "1" ]];then
+                find="\/\/#define PROF_F2F"
+                replace="#define PROF_F2F"
+                sed -i s/^"$find"/"$replace"/g "include/version.h"
+
+                find="\/\/#define ST_LINER"
+                replace="#define ST_LINER"
+                sed -i s/^"$find"/"$replace"/g "include/version.h"
+
+                versionname="f2fliner_version"
+        fi
+fi
+
+fi
+
+vername=$(cat verinfo | grep $versionname)
+vernamelen=${#vername}
+if [[ $vernamelen -lt 20 ]];then
+        echo ALERT !version name not found with this package. version not copied
+        echo $vername
+        echo ${#vername}
+        exit
+fi
+verlen=${#versionname}
+verlen=`expr $verlen + 1`
+
+ver=${vername:verlen:vernamelen-verlen}
+if [[ $ordmap == "1" && $downloader == "0" ]];then
+        find="\/\/#define TBT_ORD_MAP"
+        replace="#define TBT_ORD_MAP"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        ver=${ver/"TachyonServer.EXN."/"TachyonServer.EXN.OrdMap."}
+fi
+
+if [[ $ostcp == "1" && $downloader == "0" ]];then
+        find="\/\/#define USE_OSTCP"
+        replace="#define USE_OSTCP"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        ver=${ver/"TachyonServer.EXN."/"TachyonServer.EXN.OStcp."}
+fi
+
+
+if [[ $excesstick == "1" || $excessnbest == "1" || $excesseffqty == "1" || $excessdistributed == "1" ]];then
+	find="#define EXCESS_TICK"
+	replace="\/\/#define EXCESS_TICK"
+	sed -i s/^"$find"/"$replace"/g "include/version.h"
+	find="#define EXCESS_NBEST"
+	replace="\/\/#define EXCESS_NBEST"
+	sed -i s/^"$find"/"$replace"/g "include/version.h"
+	find="#define EXCESS_EFF_QTY"
+	replace="\/\/#define EXCESS_EFF_QTY"
+	sed -i s/^"$find"/"$replace"/g "include/version.h"
+	find="#define EXCESS_DISTRIBUTED"
+	replace="\/\/#define EXCESS_DISTRIBUTED"
+	sed -i s/^"$find"/"$replace"/g "include/version.h"
+
+	if [[ $excesstick == "1" ]];then
+        find="\/\/#define EXCESS_TICK"
+        replace="#define EXCESS_TICK"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        ver=${ver/"ExcessEffQty"/"ExcessTick"}
+	fi
+	if [[ $excessnbest == "1" ]];then
+        find="\/\/#define EXCESS_TICK"
+        replace="#define EXCESS_TICK"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        ver=${ver/"ExcessEffQty"/"ExcessNBest"}
+	fi
+	if [[ $excesseffqty == "1" ]];then
+        find="\/\/#define EXCESS_TICK"
+        replace="#define EXCESS_TICK"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        ver=${ver/"ExcessTick"/"ExcessEffQty"}
+	fi
+	if [[ $excessdistributed == "1" ]];then
+        find="\/\/#define EXCESS_TICK"
+        replace="#define EXCESS_TICK"
+        sed -i s/^"$find"/"$replace"/g "include/version.h"
+        ver=${ver/"ExcessEffQty"/"ExcessDistributed"}
+	fi
+fi
+
+if [[ $ver10secondary == "1" ]];then
+        find="-lsze2"
+        replace=" "
+        sed -i s/"$find"/"$replace"/g "Makefile"
+		ver=${ver/"VER10-1."/"VER10-2."}
+fi
+if [[ $pob == "1" ]];then
+        ver=${ver/"VER10."/"VER10.POB."}
+        ver=${ver/"VER10-1."/"VER10-1.POB."}
+        ver=${ver/"VER10-2."/"VER10-2.POB."}
+		
+        ver=${ver/"TopN-2."/"TopN-1."}
+        ver=${ver/"_Rev."/"."}
+fi
+
+make clean && make
+
+if [[ $debugcompile == "0" ]];then
+cp bin/Release/ArbitrageServer /home/shareindia/Algowire/Tachyon/Live/$ver
+else
+cp bin/Debug/ArbitrageServer /home/shareindia/Algowire/Tachyon/Live/$ver
+fi
+
+if [[ $downloader == "1" ]];then
+ cp bin/Release/ArbitrageServer /home/shareindia/Algowire/Tachyon/TAP_Live/$ver
+fi
+
+echo $ver copied !
+cd /home/build
+if [[ $leavepackage == "0" ]];then
+        'rm' -r tachtest
+fi
+
+

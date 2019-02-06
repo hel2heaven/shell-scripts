@@ -1,0 +1,109 @@
+#!/bin/bash
+
+for arg in $@
+do
+
+  if [[ $arg == "help" ||$arg == "man" || $arg == "HELP" || $arg == "MAN" ]];then
+                echo
+                echo "HELP      Prints usage detail and argument options"
+                echo "          ./completebackup"
+                echo "          It is a simple bash script which is used to store the all server backup in 100.30 machine"
+                echo "          No other parameter(s) is needed along with this command"
+                echo
+                exit
+else
+
+echo "Invalid arguments for more use 'HELP' or 'Man' "
+
+fi
+exit
+done
+
+
+
+
+##########IOC##########
+
+mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)
+for ip in 6 32 35 36 40 41 43 51 55 56 61 62 63 65 67 70 71 72 73 75 77 78 85 88 90 91 113 114 116 117 118 119 120 121 122 133 134 123 149 137 124 125 127 153 154 157 161 139
+do
+mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/root/runTachyon* /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/root/tachyonLog /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/Configuration/AllConfig.csv /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/Configuration/contractKey.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/TAP_Live/tradereport_*_$ip.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/tradelog /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+
+ #for ip in 36 41 121	
+ if [[ $ip == "124" ]] || [[ $ip == "41" ]] || [[ $ip == "125" ]] || [[ $ip == "118" ]] || [[ $ip == "127" ]]; then
+  path1="/home/shareindia/Algowire/Tachyon/Live_1"
+  path2="/home/shareindia/Algowire/Tachyon/Live_2"
+  mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_1
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path1/runTachyon* /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_1
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path1/tachyonLog /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_1
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path1/Configuration/AllConfig.csv /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_1
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path1/Configuration/contractKey.txt /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_1
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path1/tradelog /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_1
+  #sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/TAP_Live/tradereport_*_$ip.txt /home/chandan/B$(date +%d%m%Y)/100."$ip"_1
+
+  mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_2
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path1/runTachyon* /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_2
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path2/tachyonLog /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_2
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path2/Configuration/AllConfig.csv /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_2
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path2/tradelog /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_2
+  sshpass -p group@10798 scp root@192.168.100.$ip:$path2/Configuration/contractKey.txt /home/chandan/Backups/B$(date +%d%m%Y)/100."$ip"_2
+ fi
+
+done
+echo "IOC Backup Completed"
+
+##########BID##########
+
+for ip in 5 15 20 21 22 24 44 46 60 69 81 83 84 87 89 155 156 128
+do
+mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/root/runTachyon* /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/root/tachyonLog /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/Configuration/AllConfig.csv /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/Configuration/contractKey.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/Configuration/securityKey.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live/tradelog /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/TAP_Live/tradereport_*_$ip.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+done
+echo "BID Backup Completed"
+
+##########CURRENCY##########
+
+for ip in 27 115 162 
+do
+mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/root/runTachyon* /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/root/tachyonLog /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live_CD/Configuration/AllConfig.csv /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live_CD/Configuration/contractKey.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/Live_CD/tradelog /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+sshpass -p group@10798 scp root@192.168.100.$ip:/home/shareindia/Algowire/Tachyon/TAP_Live/tradereport_*_$ip.txt /home/chandan/Backups/B$(date +%d%m%Y)/100.$ip
+done
+
+#mkdir -p /home/chandan/Backups/B$(date +%d%m%Y)/100.56/CD
+#sshpass -p group@10798 scp root@192.168.100.56:/root/runTachyon* /home/chandan/Backups/B$(date +%d%m%Y)/100.85/CD/
+#sshpass -p group@10798 scp root@192.168.100.56:/root/tachyonLog /home/chandan/Backups/B$(date +%d%m%Y)/100.85/CD/
+#sshpass -p group@10798 scp root@192.168.100.56:/home/shareindia/Algowire/Tachyon/Live_CD/Configuration/AllConfig.csv  /home/chandan/Backups/B$(date +%d%m%Y)/100.85/CD/
+#sshpass -p group@10798 scp root@192.168.100.56:/home/shareindia/Algowire/Tachyon/Live_CD/Configuration/contractKey.txt  /home/chandan/Backups/B$(date +%d%m%Y)/100.85/CD/
+
+echo "CURRENCY Backup Completed"
+
+#zip -r 
+cd /home/chandan/Backups/
+zip -r B$(date +%d%m%Y).zip B$(date +%d%m%Y)
+cd -
+mount -t cifs //192.168.22.50/share /home/chandan/mounted -o username=admin,password=startingmywork
+sleep 1 
+echo Copying...
+sshpass -p group@10798 scp /home/chandan/Backups/B$(date +%d%m%Y).zip root@192.168.100.33:/store/chandan/Backups/
+cp  /home/chandan/Backups/B$(date +%d%m%Y).zip /home/chandan/mounted/Backups/Feb
+rm -rf /home/chandan/Backups/B$(date +%d%m%Y)
+echo Done
+umount /home/chandan/mounted
+

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+old=$(cat runTachyon | grep -i dpr | cut -d ' ' -f7-9)
+new=$*
+sed -i "s/$old/$new/g" runTachyon
+cat runTachyon | grep -i dpr | cut -d ' ' -f7-9
+
+

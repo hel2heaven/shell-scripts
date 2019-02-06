@@ -1,0 +1,43 @@
+#!/bin/bash
+
+  if [[ $1 == "help" ||$1 == "man" || $1 == "HELP" || $1 == "MAN" ]];then
+                echo
+                echo "HELP      Prints usage detail and argument options"
+                echo "		./passwdchanger_stp  [password]" 
+                echo "          It is used to change the Password and check the login"
+                echo "		[Password] is the require argument to chance current password"
+                echo 
+                exit
+exit
+fi
+
+
+kill -9 $(pgrep Tachyon)
+sleep 2
+CFG="/home/shareindia/Algowire/Tachyon/Live/Configuration/AllConfig.csv"
+OLDFO=$(cat $CFG | grep ^Password | cut -c10-17)
+echo "Existing FO Password :" $OLDFO
+NP=Sha@$(date +%d%m)
+echo "New FO Password :" $NP
+nc -w1 172.19.13.85 10825
+if [ "$?" -ne 0 ]; then
+  echo "********Telnet is not coming*********"
+  echo "-------You can not change Password-------"
+exit 1
+else
+echo "******TAP Connected succeefully******"
+#cd /root
+#version=$(grep ^version runTac* | tail -c +12 | head -c -2)
+#version="TachyonServer.Downloader.9.8.4.08052018"
+version="./TachyonServer.downloader_stp_02082018"
+
+echo "`tput setf 4`$version`tput setf 7`"
+cd /home/shareindia/Algowire/Tachyon/Live
+find $version
+if [ "$?" -ne 0 ]; then
+ cp ../TAP_Live/$version .
+fi
+./$version --fo --interactivemode 1 --newpassword -i $1 
+fi
+cat $ALLCONFIG | grep Password
+
